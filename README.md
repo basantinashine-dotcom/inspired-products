@@ -1,4 +1,4 @@
-# Learn by Building
+# Inspired Products
 
 Learn data science, ad tech, and product thinking by building.
 
