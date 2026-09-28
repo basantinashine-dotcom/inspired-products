@@ -2,6 +2,13 @@
 
 This is the web dashboard and Socket Mode bot built to capture top-level Slack decisions and their thread reasons. The existing offline Decision Log learning exercise remains at ../../agents/decision-log/.
 
+## Progress so far
+
+- Added a Slack message shortcut and a bulb-reaction path for capturing top-level decisions in an explicit two-channel allowlist.
+- Added thread replies for reasons, with shareable and reference-only options, and channel-limited /why answers linked to source messages.
+- Added duplicate-event protection, shortcut feedback, and an in-app Home guide.
+- Prepared an always-on Socket Mode configuration with development disabled and a production-only startup guard. **A private Reserved VM deployment has not yet been published or verified**, so the bot is not yet confirmed to work while the editor is closed.
+
 ## Privacy boundary
 
 This is a clean copy of application source, not an export of the private Replit project or its Git history. It contains no live tokens, real channel IDs, uploaded screenshots, database records, or workspace notes. The UI uses fictional sample data; real Slack channel records are not exposed on the unauthenticated demo dashboard. Never commit an .env file, real Slack IDs, private messages, or secrets.
