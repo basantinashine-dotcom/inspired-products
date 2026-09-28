@@ -1,0 +1,66 @@
+{
+  "_metadata": {
+    "major_version": 2,
+    "minor_version": 1
+  },
+  "display_information": {
+    "name": "Decision Log",
+    "description": "Captures decisions and their reasons in two configured private Slack channels."
+  },
+  "features": {
+    "app_home": {
+      "home_tab_enabled": true,
+      "messages_tab_enabled": false,
+      "messages_tab_read_only_enabled": false
+    },
+    "bot_user": {
+      "display_name": "Decision Log",
+      "always_online": false
+    },
+    "shortcuts": [
+      {
+        "name": "Log as decision",
+        "callback_id": "decision_log_capture",
+        "description": "Capture this message as a decision",
+        "type": "message"
+      }
+    ],
+    "slash_commands": [
+      {
+        "command": "/why",
+        "description": "Find why a logged decision was made",
+        "usage_hint": "guest checkout",
+        "should_escape": false
+      }
+    ]
+  },
+  "oauth_config": {
+    "scopes": {
+      "bot": [
+        "groups:history",
+        "groups:read",
+        "chat:write",
+        "commands",
+        "app_mentions:read",
+        "reactions:read",
+        "users:read"
+      ]
+    }
+  },
+  "settings": {
+    "org_deploy_enabled": false,
+    "socket_mode_enabled": true,
+    "token_rotation_enabled": false,
+    "event_subscriptions": {
+      "bot_events": [
+        "message.groups",
+        "app_mention",
+        "reaction_added",
+        "app_home_opened"
+      ]
+    },
+    "interactivity": {
+      "is_enabled": true
+    }
+  }
+}

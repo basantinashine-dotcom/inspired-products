@@ -16,6 +16,7 @@ A growing collection of hands-on projects to explore concepts, experiment with i
 | **LinkedIn Post Coach** | Design an AI review rubric, preserve an author's voice, and evaluate whether feedback is useful and grounded in the draft. | [Instructions and examples](agents/linkedin-post-coach/) |
 | **Product Sense Mock** | Practice product sense and AI PM interviews against a tool-using agent that probes your answers and scores each stage for your level. AI PM interviews include a live prompt demo you narrate. | [Source and instructions](agents/product-sense-mock/) |
 | **Decision Log** | Turn meeting notes into a log that answers "why did we decide this?". Learn how AI memory is built, why every fact needs a source, and how to keep private notes out of what you share. | [Source and instructions](agents/decision-log/) |
+| **Decision Log (Slack app)** | Capture decisions from two chosen Slack channels, ask why, and keep reasons linked to their sources. | [Sanitized app source](apps/decision-log/) |
 
 Campaign Lab currently runs in the browser using a fictional simulation. A backend, saved event dataset, and database are future learning milestones, not implemented features.
 

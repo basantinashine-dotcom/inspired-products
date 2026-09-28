@@ -1,0 +1,349 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: Decision Log API
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: decisions
+    description: Decision capture and retrieval
+  - name: insights
+    description: Dashboard summaries and activity
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      description: Returns server health status
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+  /summary:
+    get:
+      operationId: getSummary
+      tags: [insights]
+      summary: Get workspace summary
+      responses:
+        "200":
+          description: Workspace summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Summary"
+  /activity:
+    get:
+      operationId: listActivity
+      tags: [insights]
+      summary: List recent activity
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 20
+            default: 8
+      responses:
+        "200":
+          description: Recent activity
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ActivityItem"
+  /decisions:
+    get:
+      operationId: listDecisions
+      tags: [decisions]
+      summary: List logged decisions
+      parameters:
+        - name: query
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [all, current, reversed, incomplete]
+            default: all
+        - name: channel
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Decisions matching the filters
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Decision"
+    post:
+      operationId: createDecision
+      tags: [decisions]
+      summary: Log a decision
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DecisionInput"
+      responses:
+        "201":
+          description: Decision logged
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Decision"
+  /decisions/{decisionId}:
+    get:
+      operationId: getDecision
+      tags: [decisions]
+      summary: Get a decision
+      parameters:
+        - $ref: "#/components/parameters/DecisionId"
+      responses:
+        "200":
+          description: Decision detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Decision"
+        "404":
+          description: Decision not found
+    delete:
+      operationId: deleteDecision
+      tags: [decisions]
+      summary: Delete a decision
+      parameters:
+        - $ref: "#/components/parameters/DecisionId"
+      responses:
+        "204":
+          description: Decision deleted
+  /decisions/{decisionId}/reasons:
+    post:
+      operationId: addReason
+      tags: [decisions]
+      summary: Add a reason to a decision
+      parameters:
+        - $ref: "#/components/parameters/DecisionId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReasonInput"
+      responses:
+        "201":
+          description: Reason added
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Decision"
+  /decisions/{decisionId}/ask:
+    post:
+      operationId: askForReason
+      tags: [decisions]
+      summary: Request a reason in the source thread
+      parameters:
+        - $ref: "#/components/parameters/DecisionId"
+      responses:
+        "200":
+          description: Ask recorded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ActionResult"
+  /why:
+    post:
+      operationId: askWhy
+      tags: [decisions]
+      summary: Retrieve a safe deterministic answer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WhyInput"
+      responses:
+        "200":
+          description: Deterministic answer
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WhyAnswer"
+components:
+  parameters:
+    DecisionId:
+      name: decisionId
+      in: path
+      required: true
+      schema:
+        type: string
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+    Person:
+      type: object
+      required: [id, name, initials]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        initials: { type: string }
+    Reason:
+      type: object
+      required: [id, text, author, createdAt, repeatability, state, permalink]
+      properties:
+        id: { type: string }
+        text: { type: string }
+        author: { $ref: "#/components/schemas/Person" }
+        createdAt: { type: string, format: date-time }
+        repeatability:
+          type: string
+          enum: [safe, sensitive, unknown]
+        state:
+          type: string
+          enum: [current, superseded]
+        permalink: { type: string, format: uri }
+    Decision:
+      type: object
+      required:
+        - id
+        - title
+        - text
+        - channel
+        - status
+        - sourceState
+        - decidedBy
+        - loggedBy
+        - decidedAt
+        - permalink
+        - reasons
+        - participantCount
+      properties:
+        id: { type: string }
+        title: { type: string }
+        text: { type: string }
+        channel: { type: string }
+        channelType:
+          type: string
+          enum: [public, private]
+        status:
+          type: string
+          enum: [current, reversed]
+        sourceState:
+          type: string
+          enum: [active, deleted]
+        sourceEditedAt:
+          type: ["string", "null"]
+          format: date-time
+        decidedBy: { $ref: "#/components/schemas/Person" }
+        loggedBy: { $ref: "#/components/schemas/Person" }
+        decidedAt: { type: string, format: date-time }
+        permalink: { type: string, format: uri }
+        replacesId:
+          type: ["string", "null"]
+        replacementTitle:
+          type: ["string", "null"]
+        reasons:
+          type: array
+          items: { $ref: "#/components/schemas/Reason" }
+        participantCount: { type: integer }
+        askCount: { type: integer }
+    DecisionInput:
+      type: object
+      required: [title, text, channel, channelType, permalink, decidedById, loggedById]
+      properties:
+        title: { type: string, minLength: 1 }
+        text: { type: string, minLength: 1 }
+        channel: { type: string, minLength: 1 }
+        channelType:
+          type: string
+          enum: [public, private]
+        permalink: { type: string, format: uri }
+        decidedById: { type: string }
+        loggedById: { type: string }
+    ReasonInput:
+      type: object
+      required: [text, authorId]
+      properties:
+        text: { type: string, minLength: 1 }
+        authorId: { type: string }
+        repeatability:
+          type: string
+          enum: [safe, sensitive, unknown]
+          default: safe
+    WhyInput:
+      type: object
+      required: [query]
+      properties:
+        query: { type: string, minLength: 1 }
+        askerId:
+          type: string
+          default: demo-user
+    WhyAnswer:
+      type: object
+      required: [kind, query, message, matches]
+      properties:
+        kind:
+          type: string
+          enum: [answer, no_match, tombstone]
+        query: { type: string }
+        message: { type: string }
+        decision:
+          oneOf:
+            - $ref: "#/components/schemas/Decision"
+            - type: "null"
+        matches:
+          type: array
+          items: { $ref: "#/components/schemas/Decision" }
+        canAsk: { type: boolean }
+    Summary:
+      type: object
+      required: [totalDecisions, withReasons, missingReasons, currentDecisions, captureRate, averageTimeToReasonMinutes, activeChannels]
+      properties:
+        totalDecisions: { type: integer }
+        withReasons: { type: integer }
+        missingReasons: { type: integer }
+        currentDecisions: { type: integer }
+        captureRate: { type: number }
+        averageTimeToReasonMinutes: { type: number }
+        activeChannels: { type: integer }
+    ActivityItem:
+      type: object
+      required: [id, type, label, detail, createdAt, person]
+      properties:
+        id: { type: string }
+        type:
+          type: string
+          enum: [decision_logged, reason_captured, reason_replaced, source_edited, source_deleted, ask_sent]
+        label: { type: string }
+        detail: { type: string }
+        createdAt: { type: string, format: date-time }
+        person: { $ref: "#/components/schemas/Person" }
+        decisionId: { type: ["string", "null"] }
+    ActionResult:
+      type: object
+      required: [success, message]
+      properties:
+        success: { type: boolean }
+        message: { type: string }
+
