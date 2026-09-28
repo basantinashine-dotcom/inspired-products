@@ -1,12 +1,6 @@
 # Inspired Products
 
-Learn data science, ad tech, and product thinking by building.
-
-A growing collection of hands-on projects to explore concepts, experiment with ideas, and learn through code.
-
-- **Data science:** Explore data, uncover patterns, and interpret results.
-- **Ad tech:** Understand advertising systems, campaign performance, and measurement.
-- **Product management:** Turn problems into products, test hypotheses, and evaluate trade-offs.
+Building inspired products
 
 ## Explore the projects
 
