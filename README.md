@@ -11,6 +11,7 @@ Building inspired products
 | **Product Sense Mock** | Practice product sense and AI PM interviews against a tool-using agent that probes your answers and scores each stage for your level. AI PM interviews include a live prompt demo you narrate. | [Source and instructions](agents/product-sense-mock/) |
 | **Decision Log** | Turn meeting notes into a log that answers "why did we decide this?". Learn how AI memory is built, why every fact needs a source, and how to keep private notes out of what you share. | [Source and instructions](agents/decision-log/) |
 | **Decision Log (Slack app)** | Capture decisions from two chosen Slack channels, ask why, and keep reasons linked to their sources. | [Sanitized app source](apps/decision-log/) |
+| **Ad Image Studio** | Build a hosted app one product decision at a time: sign-in, a database that keeps each advertiser's work private, and (in later steps) AI product scenes that follow Amazon's ad image rules. | [Source and tutorial](apps/ad-image-studio/) |
 
 Campaign Lab currently runs in the browser using a fictional simulation. A backend, saved event dataset, and database are future learning milestones, not implemented features.
 
@@ -31,6 +32,13 @@ Decision Log runs on your own computer too, reading a folder of Markdown notes. 
 ```text
 learn-by-building/
 ├── apps/
+│   ├── ad-image-studio/
+│   │   ├── frontend/
+│   │   ├── supabase/
+│   │   ├── scripts/
+│   │   ├── package.json
+│   │   ├── README.md
+│   │   └── TUTORIAL.md
 │   └── campaign-lab/
 │       ├── .openai/hosting.json
 │       ├── dist/
