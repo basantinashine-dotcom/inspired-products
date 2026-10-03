@@ -4,7 +4,8 @@ import { supabase } from "./supabase.js";
 
 // products(count): how many photos each campaign holds, counted by the
 // database (and, like everything else, only over rows you may see).
-const COLUMNS = "id, name, updated_at, products(count)";
+const COLUMNS =
+  "id, name, updated_at, logo_path, logo_width, logo_height, products(count)";
 
 export default function Projects({ session, onOpen }) {
   const [projects, setProjects] = useState(null);
@@ -42,14 +43,14 @@ export default function Projects({ session, onOpen }) {
   }
 
   async function deleteProject(project) {
-    if (!window.confirm(`Delete "${project.name}" and all its photos? This cannot be undone.`)) {
+    if (!window.confirm(`Delete "${project.name}" with all its photos and ads? This cannot be undone.`)) {
       return;
     }
     setError("");
 
     // Deleting the project deletes its product rows with it (on delete
-    // cascade), but not the photo files: storage is separate from the
-    // database. Note which files to remove before the rows are gone.
+    // cascade), but not the photo or logo files: storage is separate from
+    // the database. Note which files to remove before the rows are gone.
     const photos = await supabase
       .from("products")
       .select("photo_path")
@@ -70,10 +71,12 @@ export default function Projects({ session, onOpen }) {
     setProjects((current) => current.filter((p) => p.id !== project.id));
 
     const paths = photos.data.map((row) => row.photo_path);
-    if (paths.length === 0) return;
-    const removal = await supabase.storage.from("drafts").remove(paths);
-    if (removal.error) {
-      setError(`Project deleted, but its photos were not: ${removal.error.message}`);
+    const removals = await Promise.all([
+      paths.length ? supabase.storage.from("drafts").remove(paths) : {},
+      project.logo_path ? supabase.storage.from("logos").remove([project.logo_path]) : {},
+    ]);
+    if (removals.some((removal) => removal.error)) {
+      setError("Project deleted, but some of its files were not.");
     }
   }
 

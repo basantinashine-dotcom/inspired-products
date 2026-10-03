@@ -19,7 +19,7 @@ cleanup() {
 }
 trap cleanup EXIT
 
-"$pg_bin/initdb" -D "$tmp/data" -U postgres --auth=trust >/dev/null
+"$pg_bin/initdb" -D "$tmp/data" -U postgres --auth=trust -E UTF8 --no-locale >/dev/null
 "$pg_bin/pg_ctl" -D "$tmp/data" -l "$tmp/postgres.log" -w \
   -o "-c listen_addresses='' -k $tmp" start >/dev/null
 

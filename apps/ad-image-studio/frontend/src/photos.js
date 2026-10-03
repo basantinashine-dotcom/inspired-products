@@ -1,5 +1,5 @@
-// Rules for product photos. Plain functions with no React or Supabase, so
-// they can be tested on their own (tests/photos.test.mjs).
+// Rules for product photos. No React or Supabase, so all but readSize can
+// be tested on their own (tests/photos.test.mjs).
 
 // File type -> extension used in storage. Matches the drafts bucket's
 // allowed types; the bucket refuses anything else even if this list drifts.
@@ -12,10 +12,6 @@ export const ACCEPTED_TYPES = {
 // Matches the drafts bucket's file size limit.
 export const MAX_BYTES = 20 * 1024 * 1024;
 
-// The custom image size Amazon asks for. Smaller photos still upload, with a
-// warning, because ads made from them get stretched. Step 3 confirms the size.
-export const TARGET = { width: 1200, height: 628 };
-
 // Why this file cannot be used, or null if it can.
 export function photoProblem(file) {
   if (!Object.hasOwn(ACCEPTED_TYPES, file.type)) {
@@ -26,15 +22,6 @@ export function photoProblem(file) {
     return `${file.name}: ${mb} MB is over the 20 MB limit.`;
   }
   return null;
-}
-
-// A warning for a photo too small for the ad size, or null.
-export function sizeWarning({ width, height }) {
-  if (width >= TARGET.width && height >= TARGET.height) return null;
-  return (
-    `${width}×${height} px is smaller than Amazon's ${TARGET.width}×${TARGET.height} ` +
-    "ad size, so ads made from it may look blurry."
-  );
 }
 
 // Where a photo lives in the drafts bucket. The first folder must be the
@@ -51,4 +38,12 @@ export function productName(fileName) {
     .replace(/[-_]+/g, " ")
     .trim();
   return (base || "Product").slice(0, 100);
+}
+
+// The browser decodes the image locally to read its size before uploading.
+export async function readSize(file) {
+  const bitmap = await createImageBitmap(file);
+  const size = { width: bitmap.width, height: bitmap.height };
+  bitmap.close();
+  return size;
 }

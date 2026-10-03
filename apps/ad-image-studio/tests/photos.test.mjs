@@ -6,7 +6,6 @@ import {
   photoPath,
   photoProblem,
   productName,
-  sizeWarning,
 } from "../frontend/src/photos.js";
 
 const file = (name, type, size = 1000) => ({ name, type, size });
@@ -29,13 +28,6 @@ test("refuses photos over 20 MB, and accepts exactly 20 MB", () => {
     photoProblem(file("huge.jpg", "image/jpeg", MAX_BYTES + 1)),
     /^huge\.jpg: 20\.0 MB is over the 20 MB limit/,
   );
-});
-
-test("warns when a photo is smaller than the ad in either direction", () => {
-  assert.equal(sizeWarning({ width: 1200, height: 628 }), null);
-  assert.equal(sizeWarning({ width: 4000, height: 3000 }), null);
-  assert.match(sizeWarning({ width: 800, height: 800 }), /^800×800 px is smaller/);
-  assert.match(sizeWarning({ width: 2000, height: 600 }), /smaller/);
 });
 
 test("stores each photo under its owner's folder", () => {

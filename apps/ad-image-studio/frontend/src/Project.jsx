@@ -1,19 +1,26 @@
 import { useEffect, useRef, useState } from "react";
 
+import { fitNote } from "./amazonSpec.js";
+import BrandLogo from "./BrandLogo.jsx";
 import {
   ACCEPTED_TYPES,
   photoPath,
   photoProblem,
   productName,
-  sizeWarning,
+  readSize,
 } from "./photos.js";
+import Product from "./Product.jsx";
 import { supabase } from "./supabase.js";
 
-const COLUMNS = "id, name, photo_path, photo_width, photo_height";
+const COLUMNS =
+  "id, name, photo_path, photo_width, photo_height, disclaimer, variants(count)";
 const drafts = () => supabase.storage.from("drafts");
 
-// One campaign: its product photos, and adding or removing them.
+// One campaign: its brand logo and product photos.
 export default function Project({ project, session, onBack }) {
+  const [campaign, setCampaign] = useState(project);
+  const [openProduct, setOpenProduct] = useState(null);
+  const [reloads, setReloads] = useState(0);
   const [products, setProducts] = useState(null);
   const [thumbs, setThumbs] = useState({});
   const [progress, setProgress] = useState("");
@@ -21,6 +28,7 @@ export default function Project({ project, session, onBack }) {
   const [error, setError] = useState("");
   const picker = useRef(null);
 
+  // Loads again on returning from a product, to pick up its new ad count.
   useEffect(() => {
     supabase
       .from("products")
@@ -35,7 +43,7 @@ export default function Project({ project, session, onBack }) {
         setProducts(data);
         showThumbs(data);
       });
-  }, [project.id]);
+  }, [project.id, reloads]);
 
   // The bucket is private, so an <img> cannot load a photo by its path.
   // A signed URL is a temporary link (here, one hour) that works without
@@ -108,8 +116,8 @@ export default function Project({ project, session, onBack }) {
       }
 
       added.push(data);
-      const warning = sizeWarning(size);
-      if (warning) found.push(`${file.name}: ${warning}`);
+      const note = fitNote(size);
+      if (note) found.push(`${file.name}: ${note}`);
     }
 
     setProducts((current) => [...(current ?? []), ...added]);
@@ -133,13 +141,26 @@ export default function Project({ project, session, onBack }) {
     if (removal.error) setError(`Product removed, but its photo was not: ${removal.error.message}`);
   }
 
+  if (openProduct) {
+    return (
+      <Product
+        product={openProduct}
+        photoUrl={thumbs[openProduct.photo_path]}
+        onBack={() => {
+          setOpenProduct(null);
+          setReloads((count) => count + 1);
+        }}
+      />
+    );
+  }
+
   return (
     <main className="wide">
       <button className="link" onClick={onBack}>
         ← All projects
       </button>
       <header className="bar">
-        <h1>{project.name}</h1>
+        <h1>{campaign.name}</h1>
         <button onClick={() => picker.current.click()} disabled={Boolean(progress)}>
           {progress || "Add product photos"}
         </button>
@@ -161,6 +182,12 @@ export default function Project({ project, session, onBack }) {
         works best.
       </p>
 
+      <BrandLogo
+        campaign={campaign}
+        userId={session.user.id}
+        onSaved={(fields) => setCampaign((current) => ({ ...current, ...fields }))}
+      />
+
       {error && <p className="error">{error}</p>}
       {notes.length > 0 && (
         <ul className="notes">
@@ -177,14 +204,16 @@ export default function Project({ project, session, onBack }) {
       <ul className="products">
         {products?.map((product) => (
           <li key={product.id}>
-            <div className="thumb">
-              {thumbs[product.photo_path] && (
-                <img src={thumbs[product.photo_path]} alt={product.name} />
-              )}
-            </div>
-            <strong>{product.name}</strong>
+            <button className="card-open" onClick={() => setOpenProduct(product)}>
+              <div className="thumb">
+                {thumbs[product.photo_path] && (
+                  <img src={thumbs[product.photo_path]} alt={product.name} />
+                )}
+              </div>
+              <strong>{product.name}</strong>
+            </button>
             <span className="muted">
-              {product.photo_width}×{product.photo_height} px
+              {product.photo_width}×{product.photo_height} px · {adCount(product)}
             </span>
             <button className="link danger" onClick={() => deleteProduct(product)}>
               Remove
@@ -196,10 +225,7 @@ export default function Project({ project, session, onBack }) {
   );
 }
 
-// The browser decodes the photo locally to read its size before uploading.
-async function readSize(file) {
-  const bitmap = await createImageBitmap(file);
-  const size = { width: bitmap.width, height: bitmap.height };
-  bitmap.close();
-  return size;
+function adCount(product) {
+  const count = product.variants?.[0]?.count ?? 0;
+  return count === 1 ? "1 ad" : `${count} ads`;
 }

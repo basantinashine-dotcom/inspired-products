@@ -36,7 +36,8 @@ attempt and what did not.
   those from one custom image. What it asks for is roughly 1200×628 (at least
   600×314), under 1 MB, not on a white background, with the product filling
   about 40% of the frame. These numbers come from search summaries; Step 3
-  checks them.
+  checks them. (Step 3 found they are Sponsored Display's. The slot chosen
+  there has its own, below.)
 - **Regenerating the whole photo from a reference image.** That redraws the
   product, so labels and shapes can come out wrong, and Amazon rejects
   warped text. Keeping the product's own pixels and replacing only the
@@ -222,4 +223,111 @@ a warning. The thumbnails loaded through signed URLs. A failed save removed
 its uploaded file. Removing a photo and deleting a campaign left no files
 behind.
 
-**Next: Step 3, which Amazon ad slot.**
+## Step 3: which Amazon ad slot?
+
+**Decision: Amazon DSP's responsive eCommerce creative**, the spec page linked
+at the start. The alternatives were Sponsored Brands (one wide image, a
+400×400 logo), Sponsored Display (one wide image, a 1 MB cap), or all three
+with rules per ad.
+
+**Why it matters.** The slot sets every size and limit the editor, the
+compliance check and the export must meet. In this slot an ad is not a
+finished picture. Amazon assembles it in many sizes from parts:
+
+| Part | Rule | Lives in |
+| --- | --- | --- |
+| Custom image | up to three shapes: square 1200×1200, tall 900×1600, wide 1200×628. No text, logos, calls to action, or white background | the ad (Step 4 makes it) |
+| Headline | optional, up to 50 characters | the ad |
+| Brand logo | at least 600×100 px, PNG or JPEG, up to 1 MB | the campaign |
+| Disclaimer | optional, up to 60 characters, only for products that need one | the product |
+| Exported image | JPG or PNG. Sources say 5 MB or 2 MB, so the stricter 2 MB | Step 7 |
+
+These come from search summaries, because Amazon's pages were not reachable
+from the build sandbox: the
+[ecommerce specs](https://advertising.amazon.com/resources/ad-specs/ecommerce)
+and the
+[responsive eCommerce creative announcement](https://advertising.amazon.com/resources/whats-new/responsive-ecommerce-creative).
+Check them there.
+
+**What was built**
+
+- `amazonSpec.js`: every rule above in one file, as data and small
+  functions, with unit tests.
+- The ads table (`variants`) arrives a step early, because the headline
+  belongs to an ad. Step 4 adds the image to it.
+- A brand logo per campaign, with its own storage bucket.
+- An optional disclaimer per product.
+- A product page: which shapes the photo can fill sharply, the disclaimer,
+  and the list of ads with their headlines.
+- The upload note from Step 2 now names the shapes a small photo will blur,
+  instead of comparing it with one size.
+
+### How it works
+
+**The rules live in two places on purpose.** `amazonSpec.js` drives the page:
+counters, disabled Save buttons and messages that say exactly what is wrong.
+The migration repeats the same limits as database checks (headline 50,
+disclaimer 60, logo 600×100) and as storage limits (logos 1,000,000 bytes,
+PNG or JPEG). The page is for being helpful; the database is for being sure.
+
+**Text is never drawn on the image.** Amazon refuses custom images that
+contain text or logos, and lays out the headline, logo and disclaimer itself.
+So they are stored as fields, and the image stays a clean photo. This is the
+biggest change from the Base44 build, which drew them onto the picture.
+
+**"Sharp" is a small calculation.** To fill a shape, the photo is cropped to
+that shape's proportions. It stays sharp only if the crop still has at least
+the shape's pixels. That comes down to one line: the smaller of
+photo width ÷ shape width and photo height ÷ shape height must be at least 1.
+A 1600×900 photo fills wide (1.33) but not square (0.75) or tall (0.56).
+
+**Counting characters is harder than it looks.** JavaScript's `.length`
+counts an emoji as 2; Postgres's `char_length` counts it as 1. If the page
+and the database disagreed, the page could allow a headline the database
+refuses. The page counts with `[...text].length`, which matches Postgres,
+and both count the trimmed text, because that is what is saved.
+
+**A SQL check passes when a value is missing.** The logo check says "at least
+600 wide". If the width were missing, the comparison gives "unknown", and a
+check that gives "unknown" counts as passed. So the check also demands that
+path, width and height are all present or all absent. A test proved the
+weaker version lets a size-less logo through.
+
+**Ownership is still inherited.** An ad belongs to whoever owns its
+product's campaign, so its rules look through product to campaign. Nothing
+copies an owner onto the ad.
+
+**Replacing a logo follows the same safe order as Step 2.** Upload the new
+file under a new name (files are never overwritten), point the campaign at
+it, and only then delete the old file.
+
+**"1 MB" is read the strict way.** It could mean 1,000,000 or 1,048,576
+bytes. The app uses 1,000,000 so the logo passes whichever Amazon means.
+The file-size cap for exported images got the same treatment: when sources
+disagree, take the stricter one.
+
+### How we know it works
+
+`npm run test:db` now runs 26 checks. The 10 new ones cover the logo bucket's
+settings, logo size and folder rules, the disclaimer and headline limits
+(including 50 emoji fitting in 50 characters), ads that can't be added to or
+moved onto another advertiser's product, and the usual "Ben can't see or
+change Ana's work" and "signed-out visitors see nothing".
+
+Seven rules were weakened on purpose: the logo check without its "all
+present" guard, logos pointing anywhere, headline and disclaimer limits
+raised by one, ads addable to any product, everyone's ads readable, and a
+2 MB logo bucket. Each made a test fail.
+
+`npm test` runs 11 unit tests, including the sharpness calculation for every
+shape and the emoji counting.
+
+In a real browser with Supabase faked, 25 checks passed: logos that are too
+small or too heavy are refused before upload; a good logo is stored in the
+owner's folder and shown; replacing it deletes the old file only after the
+new one is saved; the photo note names the blurry shapes; the product page
+shows sharp and blurry shapes; over-limit headlines and disclaimers can't be
+saved and saved text is trimmed; ad counts update; deleting a campaign
+removes its photos and logo.
+
+**Next: Step 4, the manual editing tools.**
