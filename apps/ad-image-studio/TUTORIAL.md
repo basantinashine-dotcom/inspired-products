@@ -119,4 +119,107 @@ check confirmed the sign-in link request, the project list, create (name
 trimmed, no owner sent), delete (only that project), and that a database
 refusal is shown to the user rather than swallowed.
 
-**Next: Step 2, upload and save.**
+## Step 2: upload and save product photos
+
+**Decision: a project is a campaign holding many product photos**, and each
+photo will get its own ads. The alternatives were one photo with many ad
+variants, or one photo making one ad.
+
+**Why it matters.** This decides the shape of the data, and changing it later
+means moving every advertiser's saved work:
+
+```text
+projects        a campaign                      (Step 1)
+  products      one row per product photo       (this step)
+    variants    one row per ad made from it     (Step 4)
+```
+
+Variants wait until Step 4, when there is an edit recipe to store in them.
+
+**What was built**
+
+- A `products` table, one row per photo, recording where the file is and its
+  size in pixels.
+- A private storage bucket, `drafts`, for the original photos.
+- A campaign screen: upload several photos at once, see thumbnails, remove a
+  photo. Deleting a campaign removes its photos too.
+- The project list shows how many photos each campaign holds.
+
+### How it works
+
+**Files live in storage, facts live in the database.** The photo itself goes
+into the `drafts` bucket. The `products` row records where it is and how big
+it is. Each file's path starts with its owner's id:
+
+```text
+<user id>/<project id>/<product id>/original.jpg
+```
+
+**Storage uses the same kind of rules as the database.** In Supabase every
+uploaded file is also a row in a table, `storage.objects`, and row level
+security applies to it. The rule is "the first folder of the path must be your
+user id", so nobody can read, add or delete files outside their own folder.
+
+**Ownership is inherited, not copied.** A product has no owner column. Its
+policies ask "does the signed-in user own this product's project?". If
+ownership were copied onto every product, the copies could disagree with the
+project.
+
+**Two checks on every new product.** The project must be yours, and the
+photo path must sit inside your own folder for that project. The second stops
+a product pointing at someone else's file, even one you can't open.
+
+**Originals can't be overwritten.** Storage has rules for reading, uploading
+and deleting, but deliberately none for updating. That makes non-destructive
+editing a database rule rather than a promise in the code: edits will be a
+recipe stored next to the photo.
+
+**Limits are checked twice.** The browser checks the file type (JPEG, PNG,
+WebP) and size (20 MB) to give a clear message straight away. The bucket
+enforces the same limits itself, because the browser's checks can be
+bypassed. Photos smaller than 1200×628 still upload, with a warning that ads
+made from them may look blurry.
+
+**Private photos are shown through signed URLs.** A private file has no
+public address, so a plain `<img>` can't load it. The app asks storage for a
+signed URL: a link valid for one hour, given only to someone the rules allow
+to read that file. (Base44's scene generation failed partly because it relied
+on a link like this after it had expired. Step 4 will draw photos on the
+canvas a different way, by downloading the file into the page, which also
+avoids the tainted-canvas problem.)
+
+**Order matters when two systems must agree.** Storage and the database are
+separate, so there is always a moment when one has changed and the other
+hasn't. The order is chosen so a failure leaves an unseen file, never a
+product whose photo is missing:
+
+- Adding: upload the file, then create the row. If the row fails, delete the
+  file again.
+- Removing: delete the row, then the file.
+- Deleting a campaign: first note which photo files it has, then delete the
+  campaign (its products go with it), then the files.
+
+### How we know it works
+
+`npm run test:db` now runs 16 checks. Nine are new: Ana and Ben try to add
+products to each other's campaigns, point a product at the other's photo,
+move a product across, upload into the other's folder, overwrite an original,
+and see, change or delete each other's products and photos. Signed-out
+visitors see nothing, and deleting a campaign removes its products.
+
+Five rules were weakened on purpose: no folder check on new products, no
+campaign-owner check, everyone's products readable, uploads allowed anywhere
+in the bucket, and originals made overwritable. Each made a test fail.
+
+`npm test` checks the photo rules on their own: accepted types, the 20 MB
+limit (exactly 20 MB is allowed), the size warning, storage paths and names
+taken from file names.
+
+In a real browser with Supabase faked, 20 checks passed. Uploading four files
+stored the two valid ones at the right paths with their sizes read correctly;
+the GIF and the 21 MB file were refused with reasons, and the small photo got
+a warning. The thumbnails loaded through signed URLs. A failed save removed
+its uploaded file. Removing a photo and deleting a campaign left no files
+behind.
+
+**Next: Step 3, which Amazon ad slot.**

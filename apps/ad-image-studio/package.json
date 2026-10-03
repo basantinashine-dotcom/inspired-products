@@ -11,6 +11,7 @@
     "dev": "vite frontend",
     "build": "vite build frontend",
     "preview": "vite preview frontend",
+    "test": "node --test tests/*.test.mjs",
     "test:db": "bash scripts/test-db.sh"
   },
   "dependencies": {

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 
+import Project from "./Project.jsx";
 import Projects from "./Projects.jsx";
 import SignIn from "./SignIn.jsx";
 import { isConfigured, supabase } from "./supabase.js";
@@ -7,6 +8,7 @@ import { isConfigured, supabase } from "./supabase.js";
 export default function App() {
   const [session, setSession] = useState(null);
   const [checking, setChecking] = useState(isConfigured);
+  const [openProject, setOpenProject] = useState(null);
 
   useEffect(() => {
     if (!supabase) return;
@@ -21,13 +23,24 @@ export default function App() {
     // land here, so the screen always matches who is signed in.
     const { data } = supabase.auth.onAuthStateChange((_event, next) => {
       setSession(next);
+      if (!next) setOpenProject(null);
     });
     return () => data.subscription.unsubscribe();
   }, []);
 
   if (!isConfigured) return <SetupNeeded />;
   if (checking) return null;
-  return session ? <Projects session={session} /> : <SignIn />;
+  if (!session) return <SignIn />;
+  if (openProject) {
+    return (
+      <Project
+        project={openProject}
+        session={session}
+        onBack={() => setOpenProject(null)}
+      />
+    );
+  }
+  return <Projects session={session} onOpen={setOpenProject} />;
 }
 
 function SetupNeeded() {
