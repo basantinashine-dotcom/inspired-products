@@ -6,6 +6,7 @@ Building inspired products
 
 | Project | What you can learn | Open it |
 | --- | --- | --- |
+| **AdCanvas Creative Studio** | Generate product advertising scenes with AI, compare them against reference photos, and approve images before export. | [Source and instructions](apps/adcanvas-creative-studio/) |
 | **Campaign Lab** | Practice Instagram campaign decisions, compare one-variable experiments, and trace why simulated results changed. | [Source and instructions](apps/campaign-lab/) · [Web app](https://campaign-lab-instagram.basanti-nashine.chatgpt.site) |
 | **LinkedIn Post Coach** | Design an AI review rubric, preserve an author's voice, and evaluate whether feedback is useful and grounded in the draft. | [Instructions and examples](agents/linkedin-post-coach/) |
 | **Product Sense Mock** | Practice product sense and AI PM interviews against a tool-using agent that probes your answers and scores each stage for your level. AI PM interviews include a live prompt demo you narrate. | [Source and instructions](agents/product-sense-mock/) |
